@@ -1,6 +1,4 @@
-## 300 行代码提炼 spring 核心原理
-
-更深入了解 spring 原理：**[spring-framework-simplified](https://github.com/leishiguang/spring-framework-simplified)**
+## 简化版 spring-framework
 
 <p>
 	<a target="_blank" href="https://github.com/leishiguang/spring-framework-mini/blob/master/LICENSE">
@@ -11,25 +9,10 @@
 	</a>
 </p>
 
----
+（本篇陆续完善中）
+另有姊妹篇：300 行代码提炼 spring 核心原理 **[spring-framework-mini](https://github.com/leishiguang/spring-framework-mini)**
 
-### 构建方式
-
-1. 导入 build.gradle 工程；
-2. 添加 web 包至 servlet 容器（如 tomcat）；
-3. 启动 servlet 容器；
-
-### 运行效果
-
-在控制台看到末尾出现日志 `Mini Spring Framework is init.` 即表示启动成功。
-此时在浏览器输入：localhost:8080/hello?name=world
-即可看到浏览器返回：hello world
-
-如图所示：
-
-![image](https://raw.githubusercontent.com/leishiguang/spring-framework-mini/master/docs/images/helloWorld.png)
-
-### 原理解析
+### spring-framework-mini 核心原理解析
 
 重点在于 DispatcherServlet 的初始化过程，分为如下几个步骤：
 1. 加载配置文件：获取扫描包的路径；
@@ -47,41 +30,5 @@
 6. resp 写出返回值，完成请求；
 
 当然，真正的 Spring 要复杂许多，这儿主要是了解 Spring 的基本设计思路，以及设计模式的应用。
-
-更深入了解 spring 原理：**[spring-framework-simplified](https://github.com/leishiguang/spring-framework-simplified)**
-
-### 目录结构
-
-```
-src/main
-├─java
-│  └─simplified
-│      └─spring
-│          ├─annotation 注解支持
-│          │      Autowired.java 
-│          │      Controller.java
-│          │      RequestMapping.java
-│          │      RequestParam.java
-│          │      Service.java
-│          │
-│          ├─controller 
-│          │      DemoController.java 演示用的Controller
-│          │
-│          ├─service
-│          │  │  DemoService.java 演示用的Service
-│          │  │
-│          │  └─impl
-│          │          DemoServiceImpl.java 演示用的Service实现
-│          │
-│          └─servlet
-│                  DispatcherServlet.java Servlet入口
-│
-├─resources
-│      application.properties
-│
-└─webapp
-    └─WEB-INF
-            web.xml
-```
 
 最后祝大家生活愉快~
