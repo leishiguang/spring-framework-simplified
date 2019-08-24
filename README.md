@@ -10,7 +10,7 @@
 </p>
 
 （本篇陆续完善中）
-另有姊妹篇：300 行代码提炼 spring 核心原理 **[spring-framework-mini](https://github.com/leishiguang/spring-framework-mini)**
+另有姊妹篇：300 行代码提炼 spring framework 核心原理 **[spring-framework-mini](https://github.com/leishiguang/spring-framework-mini)**
 
 ### spring-framework-mini 核心原理解析
 
@@ -29,6 +29,6 @@
 5. 反射执行 Handler 中保存的方法，获得返回值；
 6. resp 写出返回值，完成请求；
 
-当然，真正的 Spring 要复杂许多，这儿主要是了解 Spring 的基本设计思路，以及设计模式的应用。
+当然，真正的 spring framework 要复杂许多，这儿主要是了解 spring framework 的基本设计思路，以及设计模式的应用。
 
 最后祝大家生活愉快~
