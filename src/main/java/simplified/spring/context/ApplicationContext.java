@@ -1,11 +1,16 @@
 package simplified.spring.context;
 
+import simplified.spring.annotation.Autowired;
+import simplified.spring.annotation.Controller;
+import simplified.spring.annotation.Service;
 import simplified.spring.beans.BeanWrapper;
 import simplified.spring.beans.config.BeanDefinition;
+import simplified.spring.beans.config.BeanPostProcessor;
 import simplified.spring.beans.support.BeanDefinitionReader;
 import simplified.spring.beans.support.DefaultListableBeanFactory;
 import simplified.spring.core.BeanFactory;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -19,21 +24,28 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ApplicationContext extends DefaultListableBeanFactory implements BeanFactory {
 
+	/**
+	 * 保存配置文件目录
+	 */
 	private String[] configLocations;
+
+	/**
+	 * 保存读取之后的配置信息
+	 */
 	private BeanDefinitionReader reader;
 
 	/**
 	 * 单例的 IoC 容器缓存
 	 */
-	private Map<String,Object> factoryBeanObjectCache = new ConcurrentHashMap<>(6);
+	private Map<String, Object> factoryBeanObjectCache = new ConcurrentHashMap<>(6);
 
 	/**
-	 * 通用的 IoC 容器
+	 * 通用的 IoC 容器，用来存储所被代理过的对象
 	 */
 	private Map<String, BeanWrapper> factoryBeanInstanceCache = new ConcurrentHashMap<>(6);
 
 
-	public ApplicationContext(String... configLocations){
+	public ApplicationContext(String... configLocations) {
 		this.configLocations = configLocations;
 		refresh();
 	}
@@ -58,7 +70,7 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	 * 根据 beanName 从 IoC 容器中获得一个实例 Bean
 	 * 依赖注入，从这里开始，读取 BeanDefinition 中的信息，然后通过反射机制创建一个实例并返回
 	 * spring 的做法是，不会把最原始的对象放出去，会用一个 BeanWrapper 来进行一次包装；
-	 *
+	 * <p>
 	 * 装饰器模式：
 	 * 1、保留原来的 OOP 关系
 	 * 2、需要对它进行阔暗战、增强（为以后的 AOP 打基础）
@@ -68,7 +80,23 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	 */
 	@Override
 	public Object getBean(String beanName) {
-		return null;
+		BeanDefinition beanDefinition = super.beanDefinitionMap.get(beanName);
+		//准备好通知事件
+		BeanPostProcessor beanPostProcessor = new BeanPostProcessor();
+		Object instance = instantiateBean(beanDefinition);
+		if(null == instance){
+			throw new NullPointerException("无法从配置信息生成bean实例");
+		}
+		//在实例化之前，调用一次回调
+		beanPostProcessor.postProcessBeforeInitialization(instance,beanName);
+		BeanWrapper beanWrapper = new BeanWrapper(instance);
+		this.factoryBeanInstanceCache.put(beanName,beanWrapper);
+		//在实例化之后，调用一次回调
+		beanPostProcessor.postProcessAfterInitialization(instance,beanName);
+		populateBean(beanName,instance);
+		//通过这样调用，相当于给外面自己留有了可以操作的空间
+		return this.factoryBeanInstanceCache.get(beanName).getWrappedInstance();
+
 	}
 
 	/**
@@ -82,15 +110,15 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 		return getBean(beanClass.getName());
 	}
 
-	public String[] getBeanDefinitionNames(){
+	public String[] getBeanDefinitionNames() {
 		return this.beanDefinitionMap.keySet().toArray(new String[0]);
 	}
 
-	public int getBeanDefinitionCount(){
+	public int getBeanDefinitionCount() {
 		return this.beanDefinitionMap.size();
 	}
 
-	public Properties getConfig(){
+	public Properties getConfig() {
 		return this.reader.getConfig();
 	}
 
@@ -98,25 +126,82 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	/**
 	 * 注册，把配置信息放到容器里面（伪 IoC 容器）
 	 */
-	private void doRegisterBeanDefinition(List<BeanDefinition> beanDefinitions){
+	private void doRegisterBeanDefinition(List<BeanDefinition> beanDefinitions) {
 		for (BeanDefinition beanDefinition :
 				beanDefinitions) {
-			if(super.beanDefinitionMap.containsKey(beanDefinition.getFactoryBeanName())){
+			if (super.beanDefinitionMap.containsKey(beanDefinition.getFactoryBeanName())) {
 				throw new RuntimeException("The '" + beanDefinition.getFactoryBeanName() + "' is exists!");
 			}
-			super.beanDefinitionMap.put(beanDefinition.getFactoryBeanName(),beanDefinition);
+			super.beanDefinitionMap.put(beanDefinition.getFactoryBeanName(), beanDefinition);
 		}
 	}
 
 	/**
 	 * 初始化非延时加载的类
 	 */
-	private void doAutowired(){
+	private void doAutowired() {
 		for (Map.Entry<String, BeanDefinition> beanDefinitionEntry : super.beanDefinitionMap.entrySet()) {
 			String beanName = beanDefinitionEntry.getKey();
-			if(!beanDefinitionEntry.getValue().isLazyInit()){
+			if (!beanDefinitionEntry.getValue().isLazyInit()) {
 				getBean(beanName);
 			}
 		}
+	}
+
+	/**
+	 * 注入一个 bean
+	 * @param beanName bean 名称
+	 * @param instance bean 实例
+	 */
+	private void populateBean(String beanName, Object instance) {
+		Class clazz = instance.getClass();
+		if (!(clazz.isAnnotationPresent(Controller.class)) || !(clazz.isAnnotationPresent(Service.class))) {
+			return;
+		}
+		Field[] fields = clazz.getDeclaredFields();
+		for (Field field : fields) {
+			if(!field.isAnnotationPresent(Autowired.class)){
+				continue;
+			}
+			Autowired autowired = field.getAnnotation(Autowired.class);
+			String autowiredBeanName = autowired.value().trim();
+			if("".equals(autowiredBeanName)){
+				autowiredBeanName = field.getType().getName();
+			}
+			field.setAccessible(true);
+			try {
+				field.set(instance,this.factoryBeanInstanceCache.get(autowiredBeanName).getWrappedInstance());
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	/**
+	 * 传一个 BeanDefinition，就返回一个实例 Bean
+	 * @param beanDefinition Bean 相关配置信息
+	 * @return 实例 Bean
+	 */
+	private Object instantiateBean(BeanDefinition beanDefinition){
+		Object instance = null;
+		String className = beanDefinition.getBeanClassName();
+		if(this.factoryBeanObjectCache.containsKey(className)){
+			instance = this.factoryBeanObjectCache.get(className);
+		}else{
+			Class<?> clazz = null;
+			try {
+				clazz = Class.forName(className);
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+			assert clazz != null;
+			try {
+				instance = clazz.newInstance();
+			} catch (InstantiationException | IllegalAccessException e) {
+				e.printStackTrace();
+			}
+			this.factoryBeanObjectCache.put(beanDefinition.getFactoryBeanName(),instance);
+		}
+		return instance;
 	}
 }
