@@ -1,5 +1,6 @@
 package simplified.spring.context;
 
+import lombok.extern.slf4j.Slf4j;
 import simplified.spring.annotation.Autowired;
 import simplified.spring.annotation.Controller;
 import simplified.spring.annotation.Service;
@@ -22,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author leishiguang
  * @since v1.0
  */
+@Slf4j
 public class ApplicationContext extends DefaultListableBeanFactory implements BeanFactory {
 
 	/**
@@ -84,16 +86,16 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 		//准备好通知事件
 		BeanPostProcessor beanPostProcessor = new BeanPostProcessor();
 		Object instance = instantiateBean(beanDefinition);
-		if(null == instance){
-			throw new NullPointerException("无法从配置信息生成bean实例");
+		if (null == instance) {
+			throw new NullPointerException("无法从配置信息生成bean实例:" + beanName);
 		}
 		//在实例化之前，调用一次回调
-		beanPostProcessor.postProcessBeforeInitialization(instance,beanName);
+		beanPostProcessor.postProcessBeforeInitialization(instance, beanName);
 		BeanWrapper beanWrapper = new BeanWrapper(instance);
-		this.factoryBeanInstanceCache.put(beanName,beanWrapper);
+		this.factoryBeanInstanceCache.put(beanName, beanWrapper);
 		//在实例化之后，调用一次回调
-		beanPostProcessor.postProcessAfterInitialization(instance,beanName);
-		populateBean(beanName,instance);
+		beanPostProcessor.postProcessAfterInitialization(instance, beanName);
+		populateBean(beanName, instance);
 		//通过这样调用，相当于给外面自己留有了可以操作的空间
 		return this.factoryBeanInstanceCache.get(beanName).getWrappedInstance();
 
@@ -143,34 +145,39 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 		for (Map.Entry<String, BeanDefinition> beanDefinitionEntry : super.beanDefinitionMap.entrySet()) {
 			String beanName = beanDefinitionEntry.getKey();
 			if (!beanDefinitionEntry.getValue().isLazyInit()) {
-				getBean(beanName);
+				try {
+					getBean(beanName);
+				} catch (Exception e) {
+					log.error("未完成 bean 的初始化:" + beanName, e);
+				}
 			}
 		}
 	}
 
 	/**
 	 * 注入一个 bean
+	 *
 	 * @param beanName bean 名称
 	 * @param instance bean 实例
 	 */
 	private void populateBean(String beanName, Object instance) {
 		Class clazz = instance.getClass();
-		if (!(clazz.isAnnotationPresent(Controller.class)) || !(clazz.isAnnotationPresent(Service.class))) {
+		if (!(clazz.isAnnotationPresent(Controller.class) || clazz.isAnnotationPresent(Service.class))) {
 			return;
 		}
 		Field[] fields = clazz.getDeclaredFields();
 		for (Field field : fields) {
-			if(!field.isAnnotationPresent(Autowired.class)){
+			if (!field.isAnnotationPresent(Autowired.class)) {
 				continue;
 			}
 			Autowired autowired = field.getAnnotation(Autowired.class);
 			String autowiredBeanName = autowired.value().trim();
-			if("".equals(autowiredBeanName)){
+			if ("".equals(autowiredBeanName)) {
 				autowiredBeanName = field.getType().getName();
 			}
 			field.setAccessible(true);
 			try {
-				field.set(instance,this.factoryBeanInstanceCache.get(autowiredBeanName).getWrappedInstance());
+				field.set(instance, this.factoryBeanInstanceCache.get(autowiredBeanName).getWrappedInstance());
 			} catch (IllegalAccessException e) {
 				e.printStackTrace();
 			}
@@ -179,15 +186,16 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 
 	/**
 	 * 传一个 BeanDefinition，就返回一个实例 Bean
+	 *
 	 * @param beanDefinition Bean 相关配置信息
 	 * @return 实例 Bean
 	 */
-	private Object instantiateBean(BeanDefinition beanDefinition){
+	private Object instantiateBean(BeanDefinition beanDefinition) {
 		Object instance = null;
 		String className = beanDefinition.getBeanClassName();
-		if(this.factoryBeanObjectCache.containsKey(className)){
+		if (this.factoryBeanObjectCache.containsKey(className)) {
 			instance = this.factoryBeanObjectCache.get(className);
-		}else{
+		} else {
 			Class<?> clazz = null;
 			try {
 				clazz = Class.forName(className);
@@ -197,10 +205,10 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 			assert clazz != null;
 			try {
 				instance = clazz.newInstance();
+				this.factoryBeanObjectCache.put(beanDefinition.getFactoryBeanName(), instance);
 			} catch (InstantiationException | IllegalAccessException e) {
-				e.printStackTrace();
+				throw new RuntimeException("无法实例化bean:" + className, e);
 			}
-			this.factoryBeanObjectCache.put(beanDefinition.getFactoryBeanName(),instance);
 		}
 		return instance;
 	}

@@ -87,7 +87,7 @@ public class HandlerAdapter {
 		try {
 			result = handlerMapping.getMethod().invoke(handlerMapping.getController(),paramValues);
 		} catch (IllegalAccessException | InvocationTargetException e) {
-			log.error("无法反射调用method",e);
+			throw new RuntimeException("无法反射调用method",e);
 		}
 		if(result == null){
 			return null;

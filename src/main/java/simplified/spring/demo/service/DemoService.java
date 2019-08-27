@@ -1,4 +1,4 @@
-package simplified.spring.service;
+package simplified.spring.demo.service;
 
 /**
  * DemoService

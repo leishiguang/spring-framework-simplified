@@ -72,6 +72,12 @@ public class View {
 		} catch (IOException e) {
 			log.error("关闭 ra 失败",e);
 		}
+		resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
+		try {
+			resp.getWriter().write(sb.toString());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 	}
 

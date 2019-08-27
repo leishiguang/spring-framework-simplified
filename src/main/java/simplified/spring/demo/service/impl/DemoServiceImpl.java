@@ -1,8 +1,7 @@
-package simplified.spring.service.impl;
+package simplified.spring.demo.service.impl;
 
 import simplified.spring.annotation.Service;
-import simplified.spring.service.DemoService;
-import simplified.spring.webmvc.ModelAndView;
+import simplified.spring.demo.service.DemoService;
 
 /**
  * DemoServiceImpl

@@ -36,6 +36,9 @@ public class ViewResolver {
 		}
 		viewName = viewName.endsWith(DEFAULT_TEMPLATE_SUFFIX)? viewName : viewName + DEFAULT_TEMPLATE_SUFFIX;
 		File templateFile = new File((templateRootDir.getPath() + "/" + viewName).replaceAll("/+","/"));
-		return new View(templateFile);
+		if(templateFile.exists()){
+			return new View(templateFile);
+		}
+		return null;
 	}
 }

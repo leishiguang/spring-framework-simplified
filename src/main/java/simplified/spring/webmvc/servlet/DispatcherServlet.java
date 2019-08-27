@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.URL;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -134,8 +135,14 @@ public class DispatcherServlet extends HttpServlet {
 		//在页面输入 http://localhost/first.html
 		//解决页面名字和模板文件关联的问题
 		String templateRoot = context.getConfig().getProperty("templateRoot");
-		String templateRootPath = Objects.requireNonNull(this.getClass().getClassLoader().getResource(templateRoot))
-				.getFile();
+		if (null == templateRoot || "".equals(templateRoot)) {
+			throw new NullPointerException("无法获取 templateRoot 配置");
+		}
+		URL resource = this.getClass().getClassLoader().getResource(templateRoot);
+		if (resource == null) {
+			throw new NullPointerException("无法获取位置：" + templateRoot);
+		}
+		String templateRootPath = resource.getFile();
 		File templateRootDir = new File(templateRootPath);
 		for (File template : Objects.requireNonNull(templateRootDir.listFiles())) {
 			this.viewResolvers.add(new ViewResolver(template.getName()));
@@ -168,7 +175,6 @@ public class DispatcherServlet extends HttpServlet {
 
 		HandlerMapping handler = getHandler(req);
 		if (handler == null) {
-			resp.getWriter().write("404 Not Found！");
 			processDispatchResult(req, resp, new ModelAndView("404"));
 			return;
 		}
