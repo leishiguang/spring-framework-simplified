@@ -5,10 +5,13 @@ import simplified.spring.annotation.Controller;
 import simplified.spring.annotation.RequestMapping;
 import simplified.spring.annotation.RequestParam;
 import simplified.spring.service.DemoService;
+import simplified.spring.webmvc.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * DemoController
@@ -28,6 +31,16 @@ public class DemoController {
 					  @RequestParam("name") String name) throws IOException {
 		String result = demoService.hello(name);
 		resp.getWriter().write(result);
+	}
+
+	@RequestMapping("/index")
+	public ModelAndView index(HttpServletRequest req, HttpServletResponse resp,
+							  @RequestParam("name") String name) throws IOException {
+		String result = demoService.hello(name);
+		Map<String,Object> model = new HashMap<>(6);
+		model.put("data",result);
+		model.put("name",name);
+		return new ModelAndView("index.html",model);
 	}
 
 }

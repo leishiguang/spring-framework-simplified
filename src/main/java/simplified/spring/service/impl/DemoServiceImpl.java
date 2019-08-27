@@ -2,6 +2,7 @@ package simplified.spring.service.impl;
 
 import simplified.spring.annotation.Service;
 import simplified.spring.service.DemoService;
+import simplified.spring.webmvc.ModelAndView;
 
 /**
  * DemoServiceImpl
@@ -15,4 +16,5 @@ public class DemoServiceImpl implements DemoService {
 	public String hello(String name) {
 		return "hello "+name;
 	}
+	
 }
