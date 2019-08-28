@@ -27,6 +27,7 @@ public class ViewResolver {
 		String templateRootPath = Objects.requireNonNull(this.getClass().getClassLoader().getResource(templateRoot))
 				.getFile();
 		this.templateRootDir = new File(templateRootPath);
+		this.viewName = this.templateRootDir.getName();
 	}
 
 	public View resolveViewName(String viewName, Locale locale){

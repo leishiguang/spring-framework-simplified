@@ -35,7 +35,7 @@ public class DemoController {
 
 	@RequestMapping("/index")
 	public ModelAndView index(HttpServletRequest req, HttpServletResponse resp,
-							  @RequestParam("name") String name) throws IOException {
+							  @RequestParam("name") String name){
 		String result = demoService.hello(name);
 		Map<String,Object> model = new HashMap<>(6);
 		model.put("data",result);

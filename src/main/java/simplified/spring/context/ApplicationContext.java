@@ -42,7 +42,7 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	private Map<String, Object> factoryBeanObjectCache = new ConcurrentHashMap<>(6);
 
 	/**
-	 * 通用的 IoC 容器，用来存储所被代理过的对象
+	 * 通用的 IoC 容器，用来存储被代理过的对象，即 BeanWrapper 封装之后的 bean 实例化方法
 	 */
 	private Map<String, BeanWrapper> factoryBeanInstanceCache = new ConcurrentHashMap<>(6);
 
@@ -53,7 +53,7 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	}
 
 	/**
-	 * 只提供给子类重写
+	 * 初始化 IoC 容器
 	 */
 	@Override
 	public void refresh() {
@@ -75,28 +75,34 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	 * <p>
 	 * 装饰器模式：
 	 * 1、保留原来的 OOP 关系
-	 * 2、需要对它进行阔暗战、增强（为以后的 AOP 打基础）
+	 * 2、需要对它进行扩展、增强（为以后的 AOP 打基础）
 	 *
 	 * @param beanName beanName
 	 * @return 实例 bean
 	 */
 	@Override
 	public Object getBean(String beanName) {
-		BeanDefinition beanDefinition = super.beanDefinitionMap.get(beanName);
-		//准备好通知事件
-		BeanPostProcessor beanPostProcessor = new BeanPostProcessor();
-		Object instance = instantiateBean(beanDefinition);
-		if (null == instance) {
-			throw new NullPointerException("无法从配置信息生成bean实例:" + beanName);
+		//如果是第一次初始化
+		if (this.factoryBeanInstanceCache.get(beanName) == null) {
+			BeanDefinition beanDefinition = super.beanDefinitionMap.get(beanName);
+			//准备好通知事件
+			BeanPostProcessor beanPostProcessor = new BeanPostProcessor();
+			//获取bean构造函数
+			Object instance = instantiateBean(beanDefinition);
+			if (null == instance) {
+				throw new NullPointerException("无法从配置信息生成bean实例:" + beanName);
+			}
+			//在实例化之前，调用一次回调
+			beanPostProcessor.postProcessBeforeInitialization(instance, beanName);
+			//封装beanWrapper
+			BeanWrapper beanWrapper = new BeanWrapper(instance);
+			this.factoryBeanInstanceCache.put(beanName, beanWrapper);
+			//在实例化之后，调用一次回调
+			beanPostProcessor.postProcessAfterInitialization(instance, beanName);
+			//执行DI注入
+			populateBean(beanName, instance);
 		}
-		//在实例化之前，调用一次回调
-		beanPostProcessor.postProcessBeforeInitialization(instance, beanName);
-		BeanWrapper beanWrapper = new BeanWrapper(instance);
-		this.factoryBeanInstanceCache.put(beanName, beanWrapper);
-		//在实例化之后，调用一次回调
-		beanPostProcessor.postProcessAfterInitialization(instance, beanName);
-		populateBean(beanName, instance);
-		//通过这样调用，相当于给外面自己留有了可以操作的空间
+		//通过这样的代理调用，相当于留有了可以操作的空间
 		return this.factoryBeanInstanceCache.get(beanName).getWrappedInstance();
 
 	}
@@ -129,8 +135,7 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	 * 注册，把配置信息放到容器里面（伪 IoC 容器）
 	 */
 	private void doRegisterBeanDefinition(List<BeanDefinition> beanDefinitions) {
-		for (BeanDefinition beanDefinition :
-				beanDefinitions) {
+		for (BeanDefinition beanDefinition : beanDefinitions) {
 			if (super.beanDefinitionMap.containsKey(beanDefinition.getFactoryBeanName())) {
 				throw new RuntimeException("The '" + beanDefinition.getFactoryBeanName() + "' is exists!");
 			}
@@ -155,7 +160,7 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	}
 
 	/**
-	 * 注入一个 bean
+	 * DI，注入一个 bean
 	 *
 	 * @param beanName bean 名称
 	 * @param instance bean 实例
@@ -185,13 +190,13 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	}
 
 	/**
-	 * 传一个 BeanDefinition，就返回一个实例 Bean
+	 * 传一个 BeanDefinition，就返回一个实例 Bean 构造函数
 	 *
 	 * @param beanDefinition Bean 相关配置信息
 	 * @return 实例 Bean
 	 */
 	private Object instantiateBean(BeanDefinition beanDefinition) {
-		Object instance = null;
+		Object instance;
 		String className = beanDefinition.getBeanClassName();
 		if (this.factoryBeanObjectCache.containsKey(className)) {
 			instance = this.factoryBeanObjectCache.get(className);

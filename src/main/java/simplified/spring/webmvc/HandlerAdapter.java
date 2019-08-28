@@ -21,14 +21,14 @@ import java.util.Map;
 @Slf4j
 public class HandlerAdapter {
 
-	public boolean supports(Object handler){
+	public boolean supports(Object handler) {
 		return handler instanceof HandlerMapping;
 	}
 
-	public ModelAndView handle(HttpServletRequest req, HttpServletResponse resp, Object handler){
+	public ModelAndView handle(HttpServletRequest req, HttpServletResponse resp, Object handler) {
 		HandlerMapping handlerMapping = (HandlerMapping) handler;
 		//每个方法都有一个参数列表，这里保存的是形参列表
-		Map<String,Integer> paramIndexMapping = new HashMap<>(6);
+		Map<String, Integer> paramIndexMapping = new HashMap<>(6);
 		//给出命名参数
 		Annotation[][] pa = handlerMapping.getMethod().getParameterAnnotations();
 		for (int i = 0; i < pa.length; i++) {
@@ -59,7 +59,7 @@ public class HandlerAdapter {
 
 		//2.得到自定义参数的所在位置
 		//用户通过 url 传过来的参数
-		Map<String,String[]> reqParameterMap = req.getParameterMap();
+		Map<String, String[]> reqParameterMap = req.getParameterMap();
 
 		//3.构造实参列表
 		Object[] paramValues = new Object[paramTypes.length];
@@ -83,19 +83,16 @@ public class HandlerAdapter {
 		}
 
 		//4.从 handler 中取出 Controller、Method 然后利用反射机制调用
-		Object result = null;
+		Object result;
 		try {
-			result = handlerMapping.getMethod().invoke(handlerMapping.getController(),paramValues);
+			result = handlerMapping.getMethod().invoke(handlerMapping.getController(), paramValues);
 		} catch (IllegalAccessException | InvocationTargetException e) {
-			throw new RuntimeException("无法反射调用method",e);
-		}
-		if(result == null){
-			return null;
+			throw new RuntimeException("无法反射调用method", e);
 		}
 		boolean isModeAndView = handlerMapping.getMethod().getReturnType() == ModelAndView.class;
-		if(isModeAndView){
-			return (ModelAndView)result;
-		}else {
+		if (isModeAndView && (result != null)) {
+			return (ModelAndView) result;
+		} else {
 			return null;
 		}
 	}
@@ -105,7 +102,7 @@ public class HandlerAdapter {
 	 * 只需要把 String 转换为任意类型
 	 */
 	private Object caseStringValue(Class<?> type, String value) {
-		if(String.class == type){
+		if (String.class == type) {
 			return value;
 		}
 		if (Integer.class == type || int.class == type) {

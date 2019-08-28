@@ -9,7 +9,7 @@ package simplified.spring.context.support;
 public abstract class AbstractApplicationContext {
 
 	/**
-	 * 只提供给子类重写
+	 * 初始化 IoC 容器，由子类进行重写
 	 */
 	public void refresh(){}
 }

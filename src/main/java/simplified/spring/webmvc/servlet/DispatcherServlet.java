@@ -27,6 +27,9 @@ import java.util.regex.Pattern;
 @Slf4j
 public class DispatcherServlet extends HttpServlet {
 
+	/**
+	 * 与 web.xml 中的 init-param 对应
+	 */
 	private final String LOCATION = "contextConfigLocation";
 
 	/**
@@ -34,8 +37,14 @@ public class DispatcherServlet extends HttpServlet {
 	 */
 	List<HandlerMapping> handlerMappings = new ArrayList<>();
 
+	/**
+	 *
+	 */
 	private Map<HandlerMapping, HandlerAdapter> handlerAdapterMap = new HashMap<>(6);
 
+	/**
+	 * 视图文件列表
+	 */
 	private List<ViewResolver> viewResolvers = new ArrayList<>();
 
 	private ApplicationContext context;
@@ -60,8 +69,9 @@ public class DispatcherServlet extends HttpServlet {
 	public void init(ServletConfig config) {
 		//相当于把 IoC 容器初始化了
 		context = new ApplicationContext(config.getInitParameter(LOCATION));
+		//初始化 mvc 的一些策略，比如 HandlerMapping、HandlerAdapters、ViewResolver
 		initStrategies(context);
-		System.out.println("Simplified Spring Framework is init.");
+		System.out.println("Simplified Spring Framework is running.");
 	}
 
 	/**
@@ -124,6 +134,9 @@ public class DispatcherServlet extends HttpServlet {
 	}
 
 
+	/**
+	 * 每个 handlerMapping 对应一个 HandlerAdapter 用于后面的方法反射调用
+	 */
 	private void initHandlerAdapters(ApplicationContext context) {
 		//在初始化阶段，我们能做的就是，将这些参数的名字或者类型按一定的顺序保存下来，留给后面反射调用
 		for (HandlerMapping handlerMapping : this.handlerMappings) {
@@ -131,8 +144,10 @@ public class DispatcherServlet extends HttpServlet {
 		}
 	}
 
+	/**
+	 * 初始化所有视图文件根目录
+	 */
 	private void initViewResolver(ApplicationContext context) {
-		//在页面输入 http://localhost/first.html
 		//解决页面名字和模板文件关联的问题
 		String templateRoot = context.getConfig().getProperty("templateRoot");
 		if (null == templateRoot || "".equals(templateRoot)) {
@@ -170,23 +185,19 @@ public class DispatcherServlet extends HttpServlet {
 	}
 
 
-	private void doDispatch(HttpServletRequest req, HttpServletResponse resp) throws
-			IOException {
-
+	private void doDispatch(HttpServletRequest req, HttpServletResponse resp){
 		HandlerMapping handler = getHandler(req);
 		if (handler == null) {
 			processDispatchResult(req, resp, new ModelAndView("404"));
 			return;
 		}
 		HandlerAdapter ha = getHandlerAdapter(handler);
-
 		//调用方法得到返回值
-		assert ha != null;
 		ModelAndView mv = ha.handle(req, resp, handler);
-
-		//执行返回
-		assert mv != null;
-		processDispatchResult(req, resp, mv);
+		//如果模板不为空，则进行动态处理
+		if(mv != null){
+			processDispatchResult(req, resp, mv);
+		}
 	}
 
 
@@ -216,8 +227,9 @@ public class DispatcherServlet extends HttpServlet {
 		HandlerAdapter ha = handlerAdapterMap.get(handler);
 		if (ha.supports(handler)) {
 			return ha;
+		}else{
+			throw new NullPointerException("不支持该 Handler 的方法适配:"+handler);
 		}
-		return null;
 	}
 
 	/**

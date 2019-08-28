@@ -33,7 +33,7 @@ public class View {
 	}
 
 	public void render(Map<String, ?> model, HttpServletRequest req, HttpServletResponse resp) {
-		StringBuffer sb = new StringBuffer();
+		StringBuilder sb = new StringBuilder();
 		RandomAccessFile ra = null;
 		try {
 			ra = new RandomAccessFile(this.viewFile, "r");
