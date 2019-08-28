@@ -13,6 +13,7 @@ import simplified.spring.demo.service.DemoService;
 public class DemoServiceImpl implements DemoService {
 	@Override
 	public String hello(String name) {
+		//throw new UnsupportedOperationException("测试异常AOP");
 		return "hello "+name;
 	}
 	

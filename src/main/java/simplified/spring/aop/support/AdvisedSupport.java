@@ -53,6 +53,9 @@ public class AdvisedSupport {
 			cached = methodCache.get(m);
 			methodCache.put(m, cached);
 		}
+		if (cached == null) {
+			throw new NullPointerException("无法获得要代理的方法,method:" + method);
+		}
 		return cached;
 	}
 
@@ -112,7 +115,7 @@ public class AdvisedSupport {
 					} catch (InstantiationException | IllegalAccessException e) {
 						throw new RuntimeException("无法实例化class:" + aspectClass, e);
 					}
-					advices.add(new AfterReturningAdvice(aspectMethods.get(aopConfig.getAspectBefore()),afterObject ));
+					advices.add(new AfterReturningAdvice(aspectMethods.get(aopConfig.getAspectAfter()), afterObject));
 				}
 				//异常通知
 				if (!(aopConfig.getAspectAfterThrow() == null || "".equals(aopConfig.getAspectAfterThrow().trim()))) {
@@ -122,11 +125,11 @@ public class AdvisedSupport {
 					} catch (InstantiationException | IllegalAccessException e) {
 						throw new RuntimeException("无法实例化class:" + aspectClass, e);
 					}
-					AfterThrowingAdvice afterThrowingAdvice = new AfterThrowingAdvice(aspectMethods.get(aopConfig.getAspectBefore()),throwObject );
+					AfterThrowingAdvice afterThrowingAdvice = new AfterThrowingAdvice(aspectMethods.get(aopConfig.getAspectAfterThrow()), throwObject);
 					afterThrowingAdvice.setThrowingName(aopConfig.getAspectAfterThrowingName());
 					advices.add(afterThrowingAdvice);
 				}
-				methodCache.put(m,advices);
+				methodCache.put(m, advices);
 			}
 		}
 	}

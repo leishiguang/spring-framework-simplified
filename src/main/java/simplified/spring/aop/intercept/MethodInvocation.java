@@ -5,6 +5,7 @@ import simplified.spring.aop.JointPoint;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,7 +46,7 @@ public class MethodInvocation implements JointPoint {
 	/**
 	 * 回调方法链
 	 */
-	private List<Object> interceptorsAndDynmicMethodMatchers;
+	private List<Object> interceptorsAndDynamicMethodMatchers;
 
 	private Map<String ,Object> userAttributes;
 
@@ -58,7 +59,8 @@ public class MethodInvocation implements JointPoint {
 		this.method = method;
 		this.arguments = args;
 		this.targetClass = targetClass;
-		this.interceptorsAndDynmicMethodMatchers = interceptorsAdnDynamicMethodMatchers;
+		this.interceptorsAndDynamicMethodMatchers = interceptorsAdnDynamicMethodMatchers;
+		this.userAttributes = new HashMap<>(6);
 	}
 
 
@@ -80,7 +82,11 @@ public class MethodInvocation implements JointPoint {
 	 */
 	@Override
 	public void setUserAttribute(String key, Object value) {
-
+		if(value != null){
+			this.userAttributes.put(key,value);
+		}else{
+			this.userAttributes.remove(key);
+		}
 	}
 
 	/**
@@ -91,19 +97,19 @@ public class MethodInvocation implements JointPoint {
 	 */
 	@Override
 	public Object getUserAttribute(String key) {
-		return null;
+		return this.userAttributes.get(key);
 	}
 
 	public Object proceed(){
 		//如果 Interceptor 执行完了，则执行 jointPoint
-		if(this.currentInterceptorIndex == interceptorsAndDynmicMethodMatchers.size() - 1){
+		if(this.currentInterceptorIndex == this.interceptorsAndDynamicMethodMatchers.size() - 1){
 			try {
 				return this.method.invoke(this.target,this.arguments);
 			} catch (IllegalAccessException | InvocationTargetException e) {
 				throw new RuntimeException("反射调用方法失败",e);
 			}
 		}
-		Object interceptorOrInterceptionAdvice = this.interceptorsAndDynmicMethodMatchers.get(++ this.currentInterceptorIndex);
+		Object interceptorOrInterceptionAdvice = this.interceptorsAndDynamicMethodMatchers.get(++ this.currentInterceptorIndex);
 		//如果要动态匹配 jointPoint
 		if(interceptorOrInterceptionAdvice instanceof MethodInterceptor){
 			MethodInterceptor mi = (MethodInterceptor) interceptorOrInterceptionAdvice;
