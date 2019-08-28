@@ -4,6 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import simplified.spring.annotation.Autowired;
 import simplified.spring.annotation.Controller;
 import simplified.spring.annotation.Service;
+import simplified.spring.aop.AopConfig;
+import simplified.spring.aop.AopProxy;
+import simplified.spring.aop.CglibAopProxy;
+import simplified.spring.aop.JdkDynamicAopProxy;
+import simplified.spring.aop.support.AdvisedSupport;
 import simplified.spring.beans.BeanWrapper;
 import simplified.spring.beans.config.BeanDefinition;
 import simplified.spring.beans.config.BeanPostProcessor;
@@ -39,7 +44,7 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	/**
 	 * 单例的 IoC 容器缓存
 	 */
-	private Map<String, Object> factoryBeanObjectCache = new ConcurrentHashMap<>(6);
+	private Map<String, Object> singletonBeanObjectCache = new ConcurrentHashMap<>(6);
 
 	/**
 	 * 通用的 IoC 容器，用来存储被代理过的对象，即 BeanWrapper 封装之后的 bean 实例化方法
@@ -198,23 +203,52 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	private Object instantiateBean(BeanDefinition beanDefinition) {
 		Object instance;
 		String className = beanDefinition.getBeanClassName();
-		if (this.factoryBeanObjectCache.containsKey(className)) {
-			instance = this.factoryBeanObjectCache.get(className);
+		if (this.singletonBeanObjectCache.containsKey(className)) {
+			instance = this.singletonBeanObjectCache.get(className);
 		} else {
-			Class<?> clazz = null;
+			Class<?> clazz;
 			try {
 				clazz = Class.forName(className);
 			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
+				throw new RuntimeException("无法找到类:" + className, e);
 			}
-			assert clazz != null;
 			try {
 				instance = clazz.newInstance();
-				this.factoryBeanObjectCache.put(beanDefinition.getFactoryBeanName(), instance);
 			} catch (InstantiationException | IllegalAccessException e) {
 				throw new RuntimeException("无法实例化bean:" + className, e);
 			}
+			AdvisedSupport aopConfig = instantiateAopConfig(beanDefinition);
+			aopConfig.setTarget(instance);
+			aopConfig.setTargetClass(clazz);
+			if(aopConfig.pointCutMatch()){
+				instance = createProxy(aopConfig).getProxy();
+			}
+			this.singletonBeanObjectCache.put(beanDefinition.getFactoryBeanName(), instance);
+
 		}
 		return instance;
+	}
+
+
+	private AdvisedSupport instantiateAopConfig(BeanDefinition beanDefinition) {
+		AopConfig config = new AopConfig();
+		config.setPointCut(reader.getConfig().getProperty("pointCut"));
+		config.setAspectClass(reader.getConfig().getProperty("aspectClass"));
+		config.setAspectBefore(reader.getConfig().getProperty("aspectBefore"));
+		config.setAspectAfter(reader.getConfig().getProperty("aspectAfter"));
+		config.setAspectAfterThrow(reader.getConfig().getProperty("aspectAfterThrow"));
+		config.setAspectAfterThrowingName(reader.getConfig().getProperty("aspectAfterThrowingName"));
+		return new AdvisedSupport(config);
+	}
+
+	/**
+	 * 这儿可以根据是否是接口，来创建不同的代理
+	 */
+	private AopProxy createProxy(AdvisedSupport aopConfig) {
+		Class targetClass = aopConfig.getTargetClass();
+		if(targetClass.getInterfaces().length > 0){
+			return new JdkDynamicAopProxy(aopConfig);
+		}
+		return new CglibAopProxy(aopConfig);
 	}
 }

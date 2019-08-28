@@ -1,0 +1,135 @@
+package simplified.spring.aop.support;
+
+import lombok.Data;
+import simplified.spring.aop.AopConfig;
+import simplified.spring.aop.aspect.AfterReturningAdvice;
+import simplified.spring.aop.aspect.AfterThrowingAdvice;
+import simplified.spring.aop.aspect.MethodBeforeAdvice;
+
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+/**
+ * 主要用来解析和封装 AOP 配置
+ *
+ * @author leishiguang
+ * @since v1.0
+ */
+@Data
+public class AdvisedSupport {
+
+	private Class targetClass;
+	private Object target;
+	private Pattern pointCutClassPattern;
+
+	private transient Map<Method, List<Object>> methodCache;
+
+	private AopConfig aopConfig;
+
+	public AdvisedSupport(AopConfig aopConfig) {
+		this.aopConfig = aopConfig;
+	}
+
+	public void setTargetClass(Class targetClass) {
+		this.targetClass = targetClass;
+		parse();
+	}
+
+	public List<Object> getInterceptorsAndDynamicInterceptionAdvice(Method method, Class<?> targetClass) {
+		List<Object> cached = methodCache.get(method);
+		//缓存未命中，进行下一步处理
+		if (cached == null) {
+			Method m;
+			try {
+				m = targetClass.getMethod(method.getName(), method.getParameterTypes());
+			} catch (NoSuchMethodException e) {
+				throw new RuntimeException("无法在类中查找到方法，class=" + targetClass + ",method=" + method.getName(), e);
+			}
+			cached = methodCache.get(m);
+			methodCache.put(m, cached);
+		}
+		return cached;
+	}
+
+	public boolean pointCutMatch() {
+		return pointCutClassPattern.matcher(this.targetClass.toString()).matches();
+	}
+
+	private void parse() {
+		//pointCut 表达式
+		String pointCut = aopConfig.getPointCut()
+				.replaceAll("\\.", "\\\\.")
+				.replaceAll("\\\\.\\*", ".*")
+				.replaceAll("\\(", "\\\\(")
+				.replaceAll("\\)", "\\\\)");
+		String pointCutForClass = pointCut.substring(0, pointCut.lastIndexOf("\\(") - 4);
+		pointCutForClass = pointCutForClass.substring(pointCutForClass.lastIndexOf(" ") + 1);
+		pointCutClassPattern = Pattern.compile("class " + pointCutForClass);
+		methodCache = new HashMap<>(6);
+		Pattern pattern = Pattern.compile(pointCut);
+
+		Class aspectClass;
+		try {
+			aspectClass = Class.forName(aopConfig.getAspectClass());
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException("无法找到Class:" + aopConfig.getAspectClass(), e);
+		}
+		Map<String, Method> aspectMethods = new HashMap<>(6);
+		for (Method m : aspectClass.getMethods()) {
+			aspectMethods.put(m.getName(), m);
+		}
+
+		//在这里得到的方法都是原生方法
+		for (Method m : targetClass.getMethods()) {
+			String methodString = m.toString();
+			if (methodString.contains("throws")) {
+				methodString = methodString.substring(0, methodString.lastIndexOf("throws")).trim();
+			}
+			Matcher matcher = pattern.matcher(methodString);
+			if (matcher.matches()) {
+				//能满足切面规则的类，添加到 AOP 配置中
+				List<Object> advices = new LinkedList<>();
+				//前置通知
+				if (!(aopConfig.getAspectBefore() == null || "".equals(aopConfig.getAspectBefore().trim()))) {
+					Object beforeObject;
+					try {
+						beforeObject = aspectClass.newInstance();
+					} catch (InstantiationException | IllegalAccessException e) {
+						throw new RuntimeException("无法实例化class:" + aspectClass, e);
+					}
+					advices.add(new MethodBeforeAdvice(aspectMethods.get(aopConfig.getAspectBefore()), beforeObject));
+				}
+				//后置通知
+				if (!(aopConfig.getAspectAfter() == null || "".equals(aopConfig.getAspectAfter().trim()))) {
+					Object afterObject;
+					try {
+						afterObject = aspectClass.newInstance();
+					} catch (InstantiationException | IllegalAccessException e) {
+						throw new RuntimeException("无法实例化class:" + aspectClass, e);
+					}
+					advices.add(new AfterReturningAdvice(aspectMethods.get(aopConfig.getAspectBefore()),afterObject ));
+				}
+				//异常通知
+				if (!(aopConfig.getAspectAfterThrow() == null || "".equals(aopConfig.getAspectAfterThrow().trim()))) {
+					Object throwObject;
+					try {
+						throwObject = aspectClass.newInstance();
+					} catch (InstantiationException | IllegalAccessException e) {
+						throw new RuntimeException("无法实例化class:" + aspectClass, e);
+					}
+					AfterThrowingAdvice afterThrowingAdvice = new AfterThrowingAdvice(aspectMethods.get(aopConfig.getAspectBefore()),throwObject );
+					afterThrowingAdvice.setThrowingName(aopConfig.getAspectAfterThrowingName());
+					advices.add(afterThrowingAdvice);
+				}
+				methodCache.put(m,advices);
+			}
+		}
+	}
+
+
+}
