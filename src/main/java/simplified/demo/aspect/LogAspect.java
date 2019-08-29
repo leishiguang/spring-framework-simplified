@@ -1,4 +1,4 @@
-package simplified.spring.demo.aspect;
+package simplified.demo.aspect;
 
 import lombok.extern.slf4j.Slf4j;
 import simplified.spring.aop.JointPoint;
