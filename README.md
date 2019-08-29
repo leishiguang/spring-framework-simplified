@@ -14,6 +14,8 @@
 2. IoC、DI
 4. MVC、HandlerMapper、DispatcherServlet
 5. 动态视图解析
+6. AOP
+
 
 另有姊妹篇：300 行代码提炼 spring framework 核心原理 **[spring-framework-mini](https://github.com/leishiguang/spring-framework-mini)**
 
@@ -42,6 +44,10 @@ ApplicationContext 类中：
 3. 以反射的方式，执行 handlerMapper 中保存的方法；
 4. 依据返回值确定是否执行 view 解析；
 5. 回写 response 完成请求；
+
+### AOP
+
+待完善...
 
 ### 写在最后
 
