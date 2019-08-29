@@ -9,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
+ * 数据操作的 sql
  * 这个类本质上和 mybatis 是相同的，没有复杂的功能~
  *
  * @author leishiguang
