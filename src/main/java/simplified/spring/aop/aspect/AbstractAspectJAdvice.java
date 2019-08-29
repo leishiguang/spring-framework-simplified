@@ -7,7 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /**
- * 封装拦截器回调的通用逻辑，在此主要疯子了反射动态调用方法
+ * 封装拦截器回调的通用逻辑，在此主要封装了反射动态调用方法
  *
  * @author leishiguang
  * @since v1.0

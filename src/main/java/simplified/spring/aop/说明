@@ -1,0 +1,2 @@
+这儿以 application.properties 配置的方式，实现了一个 AOP 切面编程；
+另有以注解的方式实现，在 jdbc 的事务注解中有实现；
