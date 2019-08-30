@@ -8,6 +8,7 @@ import java.util.Arrays;
 /**
  * 定义一个织入的切面逻辑，也就是要针对目标代理对象增强的逻辑
  * 本类主要是完成对方法调用的监控，监听目标方法每次执行所消耗的时间
+ * 这个类以配置的方式进行了注册，配置见 application.properties
  *
  * @author leishiguang
  * @since v1.0

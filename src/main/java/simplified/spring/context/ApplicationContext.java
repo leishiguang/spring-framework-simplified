@@ -2,8 +2,6 @@ package simplified.spring.context;
 
 import lombok.extern.slf4j.Slf4j;
 import simplified.spring.annotation.Autowired;
-import simplified.spring.annotation.Controller;
-import simplified.spring.annotation.Service;
 import simplified.spring.aop.AopConfig;
 import simplified.spring.aop.AopProxy;
 import simplified.spring.aop.CglibAopProxy;
@@ -142,7 +140,7 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	private void doRegisterBeanDefinition(List<BeanDefinition> beanDefinitions) {
 		for (BeanDefinition beanDefinition : beanDefinitions) {
 			if (super.beanDefinitionMap.containsKey(beanDefinition.getFactoryBeanName())) {
-				throw new RuntimeException("The '" + beanDefinition.getFactoryBeanName() + "' is exists!");
+				log.error("The '" + beanDefinition.getFactoryBeanName() + "' is exists!");
 			}
 			super.beanDefinitionMap.put(beanDefinition.getFactoryBeanName(), beanDefinition);
 		}
@@ -165,16 +163,13 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 	}
 
 	/**
-	 * DI，注入一个 bean
+	 * DI，为 bean 中的 Autowired 进行注入
 	 *
 	 * @param beanName bean 名称
 	 * @param instance bean 实例
 	 */
 	private void populateBean(String beanName, Object instance) {
 		Class clazz = instance.getClass();
-		if (!(clazz.isAnnotationPresent(Controller.class) || clazz.isAnnotationPresent(Service.class))) {
-			return;
-		}
 		Field[] fields = clazz.getDeclaredFields();
 		for (Field field : fields) {
 			if (!field.isAnnotationPresent(Autowired.class)) {
@@ -217,9 +212,11 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 			} catch (InstantiationException | IllegalAccessException e) {
 				throw new RuntimeException("无法实例化bean:" + className, e);
 			}
+			//增加AOP的支持，这儿只实现了使用配置方式，加入一个切面，暂不支持加入多个
 			AdvisedSupport aopConfig = instantiateAopConfig(beanDefinition);
 			aopConfig.setTarget(instance);
 			aopConfig.setTargetClass(clazz);
+			//如果当前bean匹配了该切面，则生成当前bean的代理
 			if(aopConfig.pointCutMatch()){
 				instance = createProxy(aopConfig).getProxy();
 			}

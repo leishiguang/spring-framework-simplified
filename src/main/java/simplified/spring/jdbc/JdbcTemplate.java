@@ -2,7 +2,6 @@ package simplified.spring.jdbc;
 
 import lombok.extern.slf4j.Slf4j;
 import simplified.spring.annotation.Autowired;
-import simplified.spring.annotation.Service;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -15,7 +14,7 @@ import java.sql.Statement;
  * @author leishiguang
  * @since v1.0
  */
-@Service
+//@Service
 @Slf4j
 public class JdbcTemplate {
 

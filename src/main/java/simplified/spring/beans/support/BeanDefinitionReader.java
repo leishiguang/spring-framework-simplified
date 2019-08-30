@@ -1,6 +1,9 @@
 package simplified.spring.beans.support;
 
 import lombok.Data;
+import simplified.spring.annotation.Aspect;
+import simplified.spring.annotation.Controller;
+import simplified.spring.annotation.Service;
 import simplified.spring.beans.config.BeanDefinition;
 
 import java.io.File;
@@ -58,6 +61,12 @@ public class BeanDefinitionReader {
 			for (String className : registryBeanClasses) {
 				Class<?> beanClass = Class.forName(className);
 				if (beanClass.isInterface()) {
+					continue;
+				}
+				//如果没有声明为 bean 也不进行扫描（类中要添加 @Service、@Controller、@Aspect 注解
+				if(!(beanClass.isAnnotationPresent(Service.class)
+						|| beanClass.isAnnotationPresent(Controller.class)
+						|| beanClass.isAnnotationPresent(Aspect.class))){
 					continue;
 				}
 				result.add(doCreateBeanDefinition(toLowerFirstCase(beanClass.getSimpleName()), beanClass.getName()));

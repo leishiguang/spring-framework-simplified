@@ -1,7 +1,6 @@
 package simplified.spring.jdbc;
 
 import simplified.spring.annotation.Autowired;
-import simplified.spring.annotation.Service;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -14,7 +13,7 @@ import java.sql.SQLException;
  * @author leishiguang
  * @since v1.0
  */
-@Service
+//@Service
 public class TransactionManager {
 
 	@Autowired
