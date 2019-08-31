@@ -226,7 +226,9 @@ public class ApplicationContext extends DefaultListableBeanFactory implements Be
 		return instance;
 	}
 
-
+	/**
+	 * 从配置文件中获取要切入与切入方法信息
+	 */
 	private AdvisedSupport instantiateAopConfig(BeanDefinition beanDefinition) {
 		AopConfig config = new AopConfig();
 		config.setPointCut(reader.getConfig().getProperty("pointCut"));
