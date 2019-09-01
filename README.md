@@ -14,7 +14,9 @@
 2. IoC、DI
 4. MVC、HandlerMapper、DispatcherServlet
 5. 动态视图解析
-6. AOP
+6. AOP（配置方式）（注解方式完善中）
+7. 数据库连接池（完善中）
+8. 数据库事务（完善中）
 
 
 另有姊妹篇：300 行代码提炼 spring framework 核心原理 **[spring-framework-mini](https://github.com/leishiguang/spring-framework-mini)**
