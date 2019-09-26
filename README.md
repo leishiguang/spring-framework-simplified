@@ -1,3 +1,6 @@
+
+## 已迁移至 [design-patterns](https://github.com/leishiguang/design-patterns)
+
 ## 简化版 spring-framework
 
 <p>
